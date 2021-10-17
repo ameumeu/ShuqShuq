@@ -4,6 +4,22 @@ const welcome = document.getElementById("welcome");
 const form = welcome.querySelector("#enter");
 const room = document.getElementById("room");
 const nameForm = welcome.querySelector("#name");
+const screen = document.getElementById("screen");
+
+let myStream;
+
+async function getMedia() {
+  try {
+    myStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    console.log(myStream);
+    screen.srcObject = myStream;
+  } catch (e) {
+    console.log(e);
+  }
+}
 
 room.hidden = true;
 
@@ -39,6 +55,7 @@ function showRoom(newCount) {
   h3.innerText = `Room ${roomName} (${newCount})`;
   const msgForm = room.querySelector("#msg");
 
+  getMedia();
   msgForm.addEventListener("submit", handleMessageSubmit);
 }
 
