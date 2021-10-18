@@ -22,9 +22,10 @@ html(lang="en")
             div#room
                 h3
                 video#screen(autoplay, playsinline, width="800", height="600")
-                ul
+                button#getScreen Start Sharing
                 form#msg
                     input(placeholder="message", required, type="text")
                     button Send
+                ul
         script(src="/socket.io/socket.io.js")
         script(src="/public/js/app.js")
