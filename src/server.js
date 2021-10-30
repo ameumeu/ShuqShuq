@@ -34,7 +34,6 @@ wsServer.on("connection", (socket) => {
       }
       q_u.set(id, roomName);
       q.get(roomName).push(id);
-      console.log(q);
       socket.emit("add_q");
     } else {
       socket.emit("accept");
@@ -63,7 +62,7 @@ wsServer.on("connection", (socket) => {
     if (roomName_u) {
       delete u[socket.id];
       if (q.get(roomName_u)) {
-        socket.to(q.get(roomName_u).shift()).emit("accept");
+        socket.to(q.get(roomName_u).shift())?.emit("accept");
       }
     } else if (roomName_q_u) {
       const index = q.get(roomName_q_u).indexOf(socket.id);
