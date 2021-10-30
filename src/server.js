@@ -1,18 +1,19 @@
-import express, { application } from "express";
 import http from "http";
+//import SocketIO from "socket.io";
 import { Server } from "socket.io";
+import express from "express";
 import { instrument } from "@socket.io/admin-ui";
 
 const app = express();
+const q = new Map();
+const u = new Map();
 
 app.set("view engine", "pug");
 app.set("views", __dirname + "/views");
 app.use("/public", express.static(__dirname + "/public"));
-app.get("/", (req, res) => res.render("home"));
-app.get("/*", (req, res) => res.redirect("/"));
+app.get("/", (_, res) => res.render("home"));
+app.get("/*", (_, res) => res.redirect("/"));
 
-const handleListen = () => console.log(`Listening on http://localhost:3000`);
-// app.listen(3000, handleListen);
 const httpServer = http.createServer(app);
 const wsServer = new Server(httpServer, {
   cors: {
@@ -24,49 +25,23 @@ instrument(wsServer, {
   auth: false,
 });
 
-function publicRooms() {
-  const {
-    sockets: {
-      adapter: { sids, rooms },
-    },
-  } = wsServer;
-  const publicRooms = [];
-  rooms.forEach((_, key) => {
-    if (sids.get(key) === undefined) {
-      publicRooms.push(key);
+wsServer.on("connection", (socket) => {
+  socket.on("room", (roomName, id) => {
+    if (wsServer.sockets.adapter.rooms.get(roomName)?.size > 1) {
+      if (!q.get(roomName)) {
+        q.set(roomName, []);
+      }
+      q.get(roomName).push(id);
+      socket.emit("add_q");
+    } else {
+      socket.emit("accept");
     }
   });
-  return publicRooms;
-}
-
-function countRoom(roomName) {
-  return wsServer.sockets.adapter.rooms.get(roomName)?.size;
-}
-
-wsServer.on("connection", (socket) => {
-  wsServer.sockets.emit("room_change", publicRooms());
-  socket.onAny((event) => {
-    console.log(`Socket Event: ${event}`);
-  });
-  socket.on("enter_room", (roomName, done) => {
+  socket.on("join_room", (roomName, id) => {
     socket.join(roomName);
-    done(countRoom(roomName));
-    socket.to(roomName).emit("welcome", socket.nickname, countRoom(roomName));
-    wsServer.sockets.emit("room_change", publicRooms());
+    u.set(id, roomName);
+    socket.to(roomName).emit("welcome");
   });
-  socket.on("disconnecting", () => {
-    socket.rooms.forEach((roomName) =>
-      socket.to(roomName).emit("bye", socket.nickname, countRoom(roomName) - 1)
-    );
-  });
-  socket.on("disconnect", () => {
-    wsServer.sockets.emit("room_change", publicRooms());
-  });
-  socket.on("new_message", (msg, room, done) => {
-    socket.to(room).emit("new_message", `${socket.nickname}: ${msg}`);
-    done();
-  });
-  socket.on("nickname", (nickname) => (socket["nickname"] = nickname));
   socket.on("offer", (offer, roomName) => {
     socket.to(roomName).emit("offer", offer);
   });
@@ -76,6 +51,14 @@ wsServer.on("connection", (socket) => {
   socket.on("ice", (ice, roomName) => {
     socket.to(roomName).emit("ice", ice);
   });
+  socket.on("disconnect", () => {
+    const roomName = u.get(socket.id);
+    delete u[socket.id];
+    if (q.get(roomName)) {
+      socket.to(q.get(roomName).shift()).emit("accept");
+    }
+  });
 });
 
+const handleListen = () => console.log(`Listening on https://localhost:3000`);
 httpServer.listen(3000, handleListen);

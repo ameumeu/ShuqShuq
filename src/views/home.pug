@@ -6,26 +6,21 @@ html(lang="en")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         title ShuqShuq
         link(rel="stylesheet", href="https://unpkg.com/mvp.css")
-    body 
+    body
         header
             h1 ShuqShuq
         main
             div#welcome
-                form#name
-                    input(placeholder="nickname", required, type="text")
-                    button Save
-                form#enter
+                form    
                     input(placeholder="room name", required, type="text")
-                    button Enter Room
-                h4 Open Rooms:
-                ul
-            div#room
+                    button Enter room
+            div#call
                 h3
-                video#screen(autoplay, playsinline, width="800", height="600")
-                button#getScreen Start Sharing
-                form#msg
-                    input(placeholder="message", required, type="text")
-                    button Send
-                ul
-        script(src="/socket.io/socket.io.js")
-        script(src="/public/js/app.js")
+                div#myStream
+                    //- video#myFace(autoplay,playsinline, width="400", height="400")
+                    button#camera Turn Off
+                    video#peerFace(autoplay,playsinline, width="800", height="400")
+            div#waiting
+                h1 Waiting..
+        script(src="/socket.io/socket.io.js") 
+        script(src="/public/js/app.js") 
