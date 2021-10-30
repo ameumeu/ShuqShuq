@@ -7,6 +7,7 @@ import { instrument } from "@socket.io/admin-ui";
 const app = express();
 const q = new Map();
 const u = new Map();
+const q_u = new Map();
 
 app.set("view engine", "pug");
 app.set("views", __dirname + "/views");
@@ -31,7 +32,9 @@ wsServer.on("connection", (socket) => {
       if (!q.get(roomName)) {
         q.set(roomName, []);
       }
+      q_u.set(id, roomName);
       q.get(roomName).push(id);
+      console.log(q);
       socket.emit("add_q");
     } else {
       socket.emit("accept");
@@ -40,6 +43,9 @@ wsServer.on("connection", (socket) => {
   socket.on("join_room", (roomName, id) => {
     socket.join(roomName);
     u.set(id, roomName);
+    if (q_u.get(id)) {
+      delete q_u[id];
+    }
     socket.to(roomName).emit("welcome");
   });
   socket.on("offer", (offer, roomName) => {
@@ -52,10 +58,17 @@ wsServer.on("connection", (socket) => {
     socket.to(roomName).emit("ice", ice);
   });
   socket.on("disconnect", () => {
-    const roomName = u.get(socket.id);
-    delete u[socket.id];
-    if (q.get(roomName)) {
-      socket.to(q.get(roomName).shift()).emit("accept");
+    const roomName_u = u.get(socket.id);
+    const roomName_q_u = q_u.get(socket.id);
+    if (roomName_u) {
+      delete u[socket.id];
+      if (q.get(roomName_u)) {
+        socket.to(q.get(roomName_u).shift()).emit("accept");
+      }
+    } else if (roomName_q_u) {
+      const index = q.get(roomName_q_u).indexOf(socket.id);
+      q.get(roomName_q_u).splice(index, 1);
+      delete q_u[socket.id];
     }
   });
 });
